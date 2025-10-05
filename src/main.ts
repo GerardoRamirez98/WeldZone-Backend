@@ -5,9 +5,13 @@ import 'reflect-metadata';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 👇 habilitar CORS para que el frontend pueda conectarse
+  // ✅ Habilitar CORS para local y producción
   app.enableCors({
-    origin: 'http://localhost:5173', // URL de tu frontend
+    origin: [
+      'http://localhost:5173', // desarrollo local
+      'https://weldzone.vercel.app', // producción en Vercel
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
