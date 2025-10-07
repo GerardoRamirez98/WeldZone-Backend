@@ -21,3 +21,13 @@ model Product {
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
+model User {
+  id           Int      @id @default(autoincrement())     // ID único
+  username     String   @unique                          // Nombre de usuario
+  passwordHash String                                   // Contraseña encriptada
+  role         String   @default("user")                // Rol (admin o user)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6) // Fecha de creación
+  updatedAt    DateTime @default(now()) @updatedAt @db.Timestamptz(6) // Última actualización
+}
+
+
