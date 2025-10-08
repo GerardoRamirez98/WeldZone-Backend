@@ -2,32 +2,45 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import 'reflect-metadata';
+import { CorsOptions, CorsOptionsDelegate } from 'cors';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false }); // ❗ Desactivamos cors aquí primero
+  const app = await NestFactory.create(AppModule, { cors: false });
 
-  // ✅ CORS seguro y funcional en Railway + Vercel
-  app.enableCors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        'http://localhost:5173',
-        'https://weldzone.vercel.app',
-        'https://www.weldzone.vercel.app',
-      ];
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'https://weldzone.vercel.app',
+    'https://www.weldzone.vercel.app',
+  ];
 
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn('❌ CORS bloqueado para origen:', origin);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-    allowedHeaders: 'Content-Type, Authorization',
-  });
+  // ✅ CORS configurado correctamente y sin advertencias ESLint
+  const corsOptionsDelegate: CorsOptionsDelegate = (req: unknown, callback) => {
+    // Verificamos que req sea un objeto con headers
+    let origin: string | undefined;
 
-  // ✅ Validaciones automáticas
+    if (
+      typeof req === 'object' &&
+      req !== null &&
+      'headers' in req &&
+      typeof (req as any).headers === 'object'
+    ) {
+      origin = (req as any).headers.origin as string | undefined;
+    }
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      const options: CorsOptions = {
+        origin: true,
+        credentials: true,
+      };
+      callback(null, options);
+    } else {
+      console.warn(`❌ Bloqueado por CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  };
+
+  app.enableCors(corsOptionsDelegate);
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -37,7 +50,7 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port, '0.0.0.0'); // 🧠 IMPORTANTE para Railway
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 API corriendo en: ${await app.getUrl()}`);
 }
 
