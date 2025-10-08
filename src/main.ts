@@ -2,48 +2,26 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import 'reflect-metadata';
-import type { Request, Response, NextFunction } from 'express'; // 👈 agrega esto arriba
+import type { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // ⚙️ Crear la app sin CORS automático
+  const app = await NestFactory.create(AppModule, { cors: false });
 
   // 🌍 Lista blanca de orígenes permitidos
   const allowedOrigins = [
-    'http://localhost:5173', // Local
-    'https://weldzone.vercel.app', // Producción principal
-    'https://www.weldzone.vercel.app', // Con www
+    'http://localhost:5173',
+    'https://weldzone.vercel.app',
+    'https://www.weldzone.vercel.app',
   ];
 
-  // ✅ Configuración robusta de CORS (funciona en Railway)
-  app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      if (!origin) return callback(null, true); // Permitir Postman
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+  // 🧱 Middleware Express para manejar manualmente el preflight
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin ?? '';
 
-      console.warn(`🚫 Bloqueado por CORS: ${origin}`);
-      return callback(new Error('Not allowed by CORS'), false);
-    },
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Accept',
-      'Origin',
-      'X-Requested-With',
-    ],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
-
-  // ✅ Middleware para manejar manualmente solicitudes OPTIONS (preflight)
-  app.use((req: Request, res: Response, next: NextFunction): void => {
-    if (req.method === 'OPTIONS') {
-      const origin = req.headers.origin || '*';
-      res.header('Access-Control-Allow-Origin', origin);
+    // 🔓 Permitir si está en la lista o si no hay origen (Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin || '*');
       res.header(
         'Access-Control-Allow-Methods',
         'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -52,13 +30,21 @@ async function bootstrap() {
         'Access-Control-Allow-Headers',
         'Content-Type, Authorization, Accept, Origin, X-Requested-With',
       );
-      res.sendStatus(204);
-      return;
+      res.header('Access-Control-Allow-Credentials', 'true');
+
+      // 🟢 Si es preflight (OPTIONS), responder directamente
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+      }
+    } else {
+      console.warn(`🚫 Bloqueado por CORS: ${origin}`);
+      return res.status(403).json({ error: 'CORS not allowed' });
     }
+
     next();
   });
 
-  // ✅ Validaciones automáticas de DTOs
+  // ✅ Validaciones automáticas
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -67,8 +53,9 @@ async function bootstrap() {
     }),
   );
 
-  // 🚀 Inicia servidor
-  await app.listen(process.env.PORT ?? 3000);
+  // 🚀 Iniciar servidor
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
   console.log(`✅ API corriendo en: ${await app.getUrl()}`);
 }
 
