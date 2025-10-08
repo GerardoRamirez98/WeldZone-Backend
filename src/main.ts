@@ -2,42 +2,60 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import 'reflect-metadata';
+import type { Request, Response, NextFunction } from 'express'; // 👈 agrega esto arriba
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 🌍 Lista blanca de orígenes permitidos
   const allowedOrigins = [
-    'http://localhost:5173',
-    'https://weldzone.vercel.app',
-    'https://www.weldzone.vercel.app',
+    'http://localhost:5173', // Local
+    'https://weldzone.vercel.app', // Producción principal
+    'https://www.weldzone.vercel.app', // Con www
   ];
 
-  // ✅ Configuración CORS tipada correctamente (sin rojos)
+  // ✅ Configuración robusta de CORS (funciona en Railway)
   app.enableCors({
     origin: (
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
-    ): void => {
-      // Si no hay "origin" (por ejemplo, Postman), permitir
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
+    ) => {
+      if (!origin) return callback(null, true); // Permitir Postman
+      if (allowedOrigins.includes(origin)) return callback(null, true);
 
-      // Si el origen está permitido, permitir
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      // Si el origen NO está permitido, bloquear
       console.warn(`🚫 Bloqueado por CORS: ${origin}`);
-      callback(new Error('Not allowed by CORS'), false);
+      return callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
+
+  // ✅ Middleware para manejar manualmente solicitudes OPTIONS (preflight)
+  app.use((req: Request, res: Response, next: NextFunction): void => {
+    if (req.method === 'OPTIONS') {
+      const origin = req.headers.origin || '*';
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header(
+        'Access-Control-Allow-Methods',
+        'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      );
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      );
+      res.sendStatus(204);
+      return;
+    }
+    next();
   });
 
   // ✅ Validaciones automáticas de DTOs
@@ -49,7 +67,7 @@ async function bootstrap() {
     }),
   );
 
-  // 🚀 Arranca el servidor
+  // 🚀 Inicia servidor
   await app.listen(process.env.PORT ?? 3000);
   console.log(`✅ API corriendo en: ${await app.getUrl()}`);
 }
