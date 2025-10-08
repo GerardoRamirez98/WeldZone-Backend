@@ -1,46 +1,46 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 import 'reflect-metadata';
-import { CorsOptions, CorsOptionsDelegate } from 'cors';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  const app = await NestFactory.create(AppModule);
 
+  // 🌍 Lista blanca de orígenes permitidos
   const allowedOrigins = [
     'http://localhost:5173',
     'https://weldzone.vercel.app',
     'https://www.weldzone.vercel.app',
   ];
 
-  // ✅ CORS configurado correctamente y sin advertencias ESLint
-  const corsOptionsDelegate: CorsOptionsDelegate = (req: unknown, callback) => {
-    // Verificamos que req sea un objeto con headers
-    let origin: string | undefined;
+  // ✅ Configuración CORS tipada correctamente (sin rojos)
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ): void => {
+      // Si no hay "origin" (por ejemplo, Postman), permitir
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
 
-    if (
-      typeof req === 'object' &&
-      req !== null &&
-      'headers' in req &&
-      typeof (req as any).headers === 'object'
-    ) {
-      origin = (req as any).headers.origin as string | undefined;
-    }
+      // Si el origen está permitido, permitir
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
 
-    if (!origin || allowedOrigins.includes(origin)) {
-      const options: CorsOptions = {
-        origin: true,
-        credentials: true,
-      };
-      callback(null, options);
-    } else {
-      console.warn(`❌ Bloqueado por CORS: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  };
+      // Si el origen NO está permitido, bloquear
+      console.warn(`🚫 Bloqueado por CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
-  app.enableCors(corsOptionsDelegate);
-
+  // ✅ Validaciones automáticas de DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -49,9 +49,9 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port, '0.0.0.0');
-  console.log(`🚀 API corriendo en: ${await app.getUrl()}`);
+  // 🚀 Arranca el servidor
+  await app.listen(process.env.PORT ?? 3000);
+  console.log(`✅ API corriendo en: ${await app.getUrl()}`);
 }
 
 void bootstrap();
