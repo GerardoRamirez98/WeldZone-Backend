@@ -1,8 +1,8 @@
+// src/products/products.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'; // 👈 CORRECTO: usamos `type` para tipar sin importar runtime
 
-// DTO interno temporal (puedes reemplazarlo por tus DTOs reales)
 interface CreateProductDto {
   nombre: string;
   descripcion?: string;
@@ -15,17 +15,23 @@ interface CreateProductDto {
 
 @Injectable()
 export class ProductsService {
-  private supabase: ReturnType<typeof createClient>;
+  private supabase: SupabaseClient; // ✅ Tipado limpio
   private readonly bucket = process.env.SUPABASE_BUCKET || 'products';
 
   constructor(private readonly prisma: PrismaService) {
-    const supabaseUrl = process.env.SUPABASE_URL ?? '';
+    const supabaseUrl = process.env.SUPABASE_URL!;
     const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ??
-      process.env.SUPABASE_ANON_KEY ??
-      '';
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
 
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error(
+        '❌ Faltan variables de entorno: SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY.',
+      );
+    }
+
+    this.supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false },
+    }) as unknown as SupabaseClient; // ✅ Cast explícito para evitar advertencias de tipo
   }
 
   // 📦 Obtener todos los productos
@@ -90,8 +96,7 @@ export class ProductsService {
     return this.prisma.product.delete({ where: { id } });
   }
 
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
-  // 🧰 Utilidad: borrar imagen del bucket
+  // 🧰 Eliminar imagen del bucket Supabase
   private async deleteImageFromBucket(publicUrl: string | null) {
     try {
       if (!publicUrl) return;
@@ -108,7 +113,6 @@ export class ProductsService {
         .remove([path]);
 
       if (error) {
-        // ✅ acceso seguro al mensaje de error
         const message =
           typeof error === 'object' && error !== null && 'message' in error
             ? (error as { message: string }).message
@@ -118,11 +122,7 @@ export class ProductsService {
         console.log(`🗑️ Imagen eliminada del bucket: ${path}`);
       }
     } catch (err) {
-      console.error(
-        '⚠️ Error interno al procesar la eliminación de imagen:',
-        err,
-      );
+      console.error('⚠️ Error interno al procesar eliminación:', err);
     }
   }
-  /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 }
