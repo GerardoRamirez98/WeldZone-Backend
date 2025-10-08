@@ -4,29 +4,41 @@ import { ValidationPipe } from '@nestjs/common';
 import 'reflect-metadata';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { cors: false }); // ❗ Desactivamos cors aquí primero
 
-  // ✅ Activa validaciones automáticas de DTOs
+  // ✅ CORS seguro y funcional en Railway + Vercel
+  app.enableCors({
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'https://weldzone.vercel.app',
+        'https://www.weldzone.vercel.app',
+      ];
+
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn('❌ CORS bloqueado para origen:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Authorization',
+  });
+
+  // ✅ Validaciones automáticas
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // ❌ elimina campos que no existen en los DTOs
-      forbidNonWhitelisted: true, // 🚫 lanza error si mandan campos no permitidos
-      transform: true, // 🔄 convierte tipos automáticamente (string → number, etc.)
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
-  // ✅ CORS configurado para local y producción
-  app.enableCors({
-    origin: [
-      'http://localhost:5173', // Desarrollo local
-      'https://weldzone.vercel.app', // Producción
-      'https://www.weldzone.vercel.app', // Redirecciones con www
-    ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
-
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port, '0.0.0.0'); // 🧠 IMPORTANTE para Railway
   console.log(`🚀 API corriendo en: ${await app.getUrl()}`);
 }
+
 void bootstrap();
