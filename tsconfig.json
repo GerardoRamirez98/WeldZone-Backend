@@ -32,7 +32,7 @@
   },
 
   /* 📁 Archivos incluidos */
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*"],
 
   /* 🚫 Archivos ignorados */
   "exclude": ["node_modules", "dist"]
