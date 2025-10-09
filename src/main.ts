@@ -7,37 +7,45 @@ import { CorsOptionsDelegate, CorsRequest } from 'cors';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
 
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'https://weldzone.vercel.app',
-    'https://www.weldzone.vercel.app',
-  ];
+  // 🧩 Orígenes permitidos (dinámico desde .env)
+  const allowedOrigins = (process.env.FRONTEND_URL ?? '')
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean);
 
-  // ✅ Configuración CORS sin warnings ni assertions innecesarias
+  // ✅ Configuración CORS robusta, sin warnings ni assertions
   const corsOptionsDelegate: CorsOptionsDelegate<CorsRequest> = (
     req,
     callback,
   ) => {
     const originHeader = req.headers.origin;
 
-    // Si no hay origin (por ejemplo, Postman), permitir
+    // Permitir solicitudes sin origin (ej: Postman, server-side)
     if (!originHeader) {
       return callback(null, { origin: true });
     }
 
-    // Aceptar si el origin está en la lista blanca
+    // Si el origin está permitido, lo aceptamos
     if (allowedOrigins.includes(originHeader)) {
-      return callback(null, { origin: true, credentials: true });
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        allowedHeaders: ['Content-Type', 'Authorization'],
+      });
     }
 
-    // Bloquear orígenes no permitidos
-    console.warn(`❌ Bloqueado por CORS: ${originHeader}`);
-    return callback(new Error(`CORS not allowed for origin: ${originHeader}`));
+    // Si el origin no está permitido, lo bloqueamos
+    console.warn(`🚫 Bloqueado por CORS: ${originHeader}`);
+    return callback(new Error(`CORS not allowed for origin: ${originHeader}`), {
+      origin: false,
+    });
   };
 
+  // 🔧 Activamos CORS con configuración personalizada
   app.enableCors(corsOptionsDelegate);
 
-  // 🧰 Validaciones automáticas globales
+  // 🧰 Validaciones automáticas globales (DTOs)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -46,6 +54,7 @@ async function bootstrap() {
     }),
   );
 
+  // 🚀 Iniciamos servidor
   await app.listen(process.env.PORT ?? 3000);
   console.log(`🚀 API corriendo en: ${await app.getUrl()}`);
 }
