@@ -1,39 +1,27 @@
 {
   "compilerOptions": {
-    /* 🔧 Compatibilidad moderna con Node.js y TS 6+ */
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-
-    /* 🧩 Decoradores (necesarios para NestJS) */
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
-    /* 🧱 Compatibilidad con campos de clase (Nest usa legacy) */
+    // 👇 fuerza legacy decorators
     "useDefineForClassFields": false,
 
-    /* ⚙️ Comportamiento estricto y seguro */
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* 🌐 Importaciones absolutas */
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
     },
+    "ignoreDeprecations": "5.0",
 
-    /* 🚫 Evita warnings por deprecaciones de TS6 */
-    "ignoreDeprecations": "6.0",
-
-    /* 📦 Carpeta de salida */
     "outDir": "./dist"
   },
-
-  /* 📁 Archivos incluidos */
-  "include": ["src/**/*"],
-
-  /* 🚫 Archivos ignorados */
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
