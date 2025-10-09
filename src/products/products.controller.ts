@@ -3,10 +3,12 @@ import {
   Get,
   Post,
   Put,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Delete,
   Body,
   Param,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -44,8 +46,24 @@ export class ProductsController {
   }
 
   // 🗑️ DELETE /products/:id — eliminar producto + imagen
-  @Delete(':id')
-  async deleteProduct(@Param('id', ParseIntPipe) id: number) {
-    return this.productsService.delete(id);
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const deleted = await this.productsService.delete(id);
+
+      if (!deleted) {
+        throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      }
+
+      return { message: `✅ Producto ${id} eliminado correctamente` };
+    } catch (err) {
+      // 🧠 Manejo de errores personalizados
+      if (err instanceof Error && err.message.includes('stock')) {
+        return {
+          message: err.message,
+          blocked: true, // 👈 indicador para frontend
+        };
+      }
+      throw err; // otros errores
+    }
   }
 }

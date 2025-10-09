@@ -100,6 +100,14 @@ export class ProductsService {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
+    // ⚠️ Verificar si el producto tiene stock disponible
+    if (producto.stock > 0) {
+      throw new Error(
+        `⚠️ No se puede eliminar el producto "${producto.nombre}" porque aún tiene ${producto.stock} unidades en stock.`,
+      );
+    }
+
+    // ⚙️ Si tiene imagen, eliminarla del bucket Supabase
     if (producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
     }
