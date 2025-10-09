@@ -26,4 +26,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   imagenUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  estado?: string;
 }
