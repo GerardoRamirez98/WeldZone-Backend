@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Put,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Delete,
   Body,
   Param,
@@ -46,6 +45,7 @@ export class ProductsController {
   }
 
   // 🗑️ DELETE /products/:id — eliminar producto + imagen
+  @Delete(':id')
   async delete(@Param('id', ParseIntPipe) id: number) {
     try {
       const deleted = await this.productsService.delete(id);
