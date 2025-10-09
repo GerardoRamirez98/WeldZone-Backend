@@ -66,14 +66,16 @@ export class ProductsService {
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
     const cleanData: Partial<CreateProductDto> = {};
-    if (data.nombre) cleanData.nombre = data.nombre;
-    if (data.descripcion) cleanData.descripcion = data.descripcion;
-    if (data.precio) cleanData.precio = data.precio;
-    if (data.stock) cleanData.stock = data.stock;
-    if (data.categoria) cleanData.categoria = data.categoria;
-    if (data.etiqueta) cleanData.etiqueta = data.etiqueta;
-    if (data.imagenUrl) cleanData.imagenUrl = data.imagenUrl;
-    if (data.estado) cleanData.estado = data.estado;
+
+    if (data.nombre !== undefined) cleanData.nombre = data.nombre;
+    if (data.descripcion !== undefined)
+      cleanData.descripcion = data.descripcion;
+    if (data.precio !== undefined) cleanData.precio = data.precio;
+    if (data.stock !== undefined) cleanData.stock = data.stock; // ✅ Ahora acepta 0
+    if (data.categoria !== undefined) cleanData.categoria = data.categoria;
+    if (data.etiqueta !== undefined) cleanData.etiqueta = data.etiqueta;
+    if (data.imagenUrl !== undefined) cleanData.imagenUrl = data.imagenUrl;
+    if (data.estado !== undefined) cleanData.estado = data.estado;
 
     // 🧠 Lógica automática de estado según stock
     if (data.stock !== undefined) {
