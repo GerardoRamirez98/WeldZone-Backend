@@ -11,6 +11,7 @@ interface CreateProductDto {
   categoria?: string;
   etiqueta?: string;
   imagenUrl?: string;
+  estado?: string; // ✅ NUEVO CAMPO
 }
 
 @Injectable()
@@ -72,6 +73,16 @@ export class ProductsService {
     if (data.categoria) cleanData.categoria = data.categoria;
     if (data.etiqueta) cleanData.etiqueta = data.etiqueta;
     if (data.imagenUrl) cleanData.imagenUrl = data.imagenUrl;
+    if (data.estado) cleanData.estado = data.estado;
+
+    // 🧠 Lógica automática de estado según stock
+    if (data.stock !== undefined) {
+      if (data.stock <= 0) {
+        cleanData.estado = 'agotado';
+      } else if (data.stock > 0 && producto.estado === 'agotado') {
+        cleanData.estado = 'activo';
+      }
+    }
 
     // ⚙️ Si la imagen cambió, borrar la anterior del bucket
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {

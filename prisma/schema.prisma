@@ -17,6 +17,7 @@ model Product {
   categoria   String   @default("General")
   etiqueta    String?
   imagenUrl   String?
+  estado      String   @default("activo")
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
