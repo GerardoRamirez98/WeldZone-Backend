@@ -1,8 +1,9 @@
 // src/products/products.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'; // 👈 CORRECTO: usamos `type` para tipar sin importar runtime
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+/** DTO interno del servicio (no el de controller) */
 interface CreateProductDto {
   nombre: string;
   descripcion?: string;
@@ -11,13 +12,16 @@ interface CreateProductDto {
   categoria?: string;
   etiqueta?: string;
   imagenUrl?: string;
-  estado?: string; // ✅ NUEVO CAMPO
+  specFileUrl?: string; // ✅ nuevo campo
+  estado?: string;
 }
 
 @Injectable()
 export class ProductsService {
-  private supabase: SupabaseClient; // ✅ Tipado limpio
-  private readonly bucket = process.env.SUPABASE_BUCKET || 'products';
+  private supabase: SupabaseClient;
+  private readonly imageBucket = process.env.SUPABASE_BUCKET || 'products';
+  private readonly specsBucket =
+    process.env.SUPABASE_SPECS_BUCKET || 'product-specs';
 
   constructor(private readonly prisma: PrismaService) {
     const supabaseUrl = process.env.SUPABASE_URL!;
@@ -32,7 +36,7 @@ export class ProductsService {
 
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false },
-    }) as unknown as SupabaseClient; // ✅ Cast explícito para evitar advertencias de tipo
+    }) as unknown as SupabaseClient;
   }
 
   // 📦 Obtener todos los productos
@@ -55,6 +59,7 @@ export class ProductsService {
       categoria: data.categoria,
       etiqueta: data.etiqueta,
       imagenUrl: data.imagenUrl,
+      specFileUrl: data.specFileUrl, // ✅ agregado
     };
 
     return this.prisma.product.create({ data: cleanData });
@@ -71,13 +76,15 @@ export class ProductsService {
     if (data.descripcion !== undefined)
       cleanData.descripcion = data.descripcion;
     if (data.precio !== undefined) cleanData.precio = data.precio;
-    if (data.stock !== undefined) cleanData.stock = data.stock; // ✅ Ahora acepta 0
+    if (data.stock !== undefined) cleanData.stock = data.stock;
     if (data.categoria !== undefined) cleanData.categoria = data.categoria;
     if (data.etiqueta !== undefined) cleanData.etiqueta = data.etiqueta;
     if (data.imagenUrl !== undefined) cleanData.imagenUrl = data.imagenUrl;
+    if (data.specFileUrl !== undefined)
+      cleanData.specFileUrl = data.specFileUrl;
     if (data.estado !== undefined) cleanData.estado = data.estado;
 
-    // 🧠 Lógica automática de estado según stock
+    // 🧠 Estado automático según stock
     if (data.stock !== undefined) {
       if (data.stock <= 0) {
         cleanData.estado = 'agotado';
@@ -86,9 +93,14 @@ export class ProductsService {
       }
     }
 
-    // ⚙️ Si la imagen cambió, borrar la anterior del bucket
+    // ⚙️ Si la imagen cambió, eliminar la anterior del bucket
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
+    }
+
+    // ⚙️ Si el archivo de especificaciones cambió, eliminar el anterior
+    if (data.specFileUrl && data.specFileUrl !== producto.specFileUrl) {
+      await this.deleteSpecFileFromBucket(producto.specFileUrl);
     }
 
     return this.prisma.product.update({
@@ -97,21 +109,26 @@ export class ProductsService {
     });
   }
 
-  // 🗑️ Eliminar producto + imagen del bucket
+  // 🗑️ Eliminar producto + recursos de Supabase
   async delete(id: number) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
-    // ⚠️ Verificar si el producto tiene stock disponible
+    // ⚠️ Verificar si aún tiene stock
     if (producto.stock > 0) {
       throw new Error(
         `⚠️ No se puede eliminar el producto "${producto.nombre}" porque aún tiene ${producto.stock} unidades en stock.`,
       );
     }
 
-    // ⚙️ Si tiene imagen, eliminarla del bucket Supabase
+    // 🧹 Eliminar imagen si existe
     if (producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
+    }
+
+    // 🧹 Eliminar archivo de especificaciones si existe
+    if (producto.specFileUrl) {
+      await this.deleteSpecFileFromBucket(producto.specFileUrl);
     }
 
     return this.prisma.product.delete({ where: { id } });
@@ -121,29 +138,54 @@ export class ProductsService {
   private async deleteImageFromBucket(publicUrl: string | null) {
     try {
       if (!publicUrl) return;
-
       const parts = publicUrl.split('/');
-      const bucketIndex = parts.indexOf(this.bucket);
+      const bucketIndex = parts.indexOf(this.imageBucket);
       if (bucketIndex === -1) return;
 
       const path = parts.slice(bucketIndex + 1).join('/');
       if (!path) return;
 
       const { error } = await this.supabase.storage
-        .from(this.bucket)
+        .from(this.imageBucket)
         .remove([path]);
 
       if (error) {
-        const message =
-          typeof error === 'object' && error !== null && 'message' in error
-            ? (error as { message: string }).message
-            : String(error);
-        console.error('❌ Error al borrar imagen del bucket:', message);
+        console.error('❌ Error al borrar imagen del bucket:', error.message);
       } else {
         console.log(`🗑️ Imagen eliminada del bucket: ${path}`);
       }
     } catch (err) {
-      console.error('⚠️ Error interno al procesar eliminación:', err);
+      console.error('⚠️ Error interno al borrar imagen:', err);
+    }
+  }
+
+  // 🧰 Eliminar archivo de especificaciones del bucket Supabase
+  private async deleteSpecFileFromBucket(publicUrl: string | null) {
+    try {
+      if (!publicUrl) return;
+      const parts = publicUrl.split('/');
+      const bucketIndex = parts.indexOf(this.specsBucket);
+      if (bucketIndex === -1) return;
+
+      const path = parts.slice(bucketIndex + 1).join('/');
+      if (!path) return;
+
+      const { error } = await this.supabase.storage
+        .from(this.specsBucket)
+        .remove([path]);
+
+      if (error) {
+        console.error(
+          '❌ Error al borrar archivo de especificaciones:',
+          error.message,
+        );
+      } else {
+        console.log(
+          `🗑️ Archivo de especificaciones eliminado del bucket: ${path}`,
+        );
+      }
+    } catch (err) {
+      console.error('⚠️ Error interno al borrar especificación:', err);
     }
   }
 }

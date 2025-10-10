@@ -26,6 +26,11 @@ export class CreateProductDto {
   @IsString()
   imagenUrl?: string;
 
+  // 👇 nuevo campo para archivo de especificaciones (PDF/DOCX)
+  @IsOptional()
+  @IsString()
+  specFileUrl?: string;
+
   @IsOptional()
   @IsString()
   estado?: string;

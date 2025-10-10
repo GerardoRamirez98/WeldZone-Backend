@@ -1,3 +1,4 @@
+// src/products/products.controller.ts
 import {
   Controller,
   Get,
@@ -32,6 +33,12 @@ export class ProductsController {
   // 🛠️ POST /products — crear nuevo producto
   @Post()
   async createProduct(@Body() body: CreateProductDto) {
+    /**
+     * body puede contener:
+     * - nombre, descripcion, precio, stock, categoria, etiqueta
+     * - imagenUrl (string)
+     * - specFileUrl (string) 👈 NUEVO CAMPO OPCIONAL
+     */
     return this.productsService.create(body);
   }
 
@@ -41,10 +48,15 @@ export class ProductsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateProductDto,
   ) {
+    /**
+     * body puede contener:
+     * - Cualquier campo de CreateProductDto
+     * - incluyendo specFileUrl 👈 (nuevo)
+     */
     return this.productsService.update(id, body);
   }
 
-  // 🗑️ DELETE /products/:id — eliminar producto + imagen
+  // 🗑️ DELETE /products/:id — eliminar producto + imagen + archivo de especificaciones
   @Delete(':id')
   async delete(@Param('id', ParseIntPipe) id: number) {
     try {

@@ -7,4 +7,9 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsOptional()
   @IsString()
   imagenUrl?: string;
+
+  // 👇 también para reemplazar o eliminar especificaciones
+  @IsOptional()
+  @IsString()
+  specFileUrl?: string;
 }

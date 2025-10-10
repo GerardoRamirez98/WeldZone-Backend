@@ -22,6 +22,6 @@
 
     "outDir": "./dist"
   },
-  "include": ["src"],
+  "include": ["src", "test-upload.js"],
   "exclude": ["node_modules", "dist"]
 }

@@ -10,16 +10,17 @@ datasource db {
 
 model Product {
   id          Int      @id @default(autoincrement())
-  nombre      String
-  descripcion String?
-  precio      Float
-  stock       Int      @default(0)
-  categoria   String   @default("General")
-  etiqueta    String?
-  imagenUrl   String?
-  estado      String   @default("activo")
-  createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  nombre        String
+  descripcion   String?
+  precio        Float
+  stock         Int      @default(0)
+  categoria     String   @default("General")
+  etiqueta      String?
+  imagenUrl     String?
+  specFileUrl   String?  // ej. "abc123/ficha-tecnica-1728500012.pdf"
+  estado        String   @default("activo")
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model User {
