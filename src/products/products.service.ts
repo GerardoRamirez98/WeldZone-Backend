@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Prisma } from '@prisma/client';
 
 /** DTO interno del servicio (no el de controller) */
 interface CreateProductDto {
@@ -39,50 +40,109 @@ export class ProductsService {
     }) as unknown as SupabaseClient;
   }
 
-  // 📦 Obtener todos los productos
+  // 📦 Obtener todos los productos con sus relaciones
+  // 📦 Obtener todos los productos con relaciones
   async getAll() {
-    return this.prisma.product.findMany();
+    return this.prisma.product.findMany({
+      include: {
+        categoria: {
+          select: { id: true, nombre: true },
+        },
+        etiqueta: {
+          select: { id: true, nombre: true, color: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // 🔎 Obtener producto por ID
   async getById(id: number) {
-    return this.prisma.product.findUnique({ where: { id } });
+    return this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        categoria: { select: { id: true, nombre: true } },
+        etiqueta: { select: { id: true, nombre: true, color: true } },
+      },
+    });
   }
 
-  // 🛠️ Crear producto
+  // 🛠️ Crear producto con relaciones seguras
   async create(data: CreateProductDto) {
-    const cleanData: CreateProductDto = {
+    // Tipamos explícitamente el tipo compatible con Prisma
+    const cleanData: Prisma.ProductCreateInput = {
       nombre: data.nombre,
-      descripcion: data.descripcion,
+      descripcion: data.descripcion ?? null,
       precio: data.precio,
       stock: data.stock,
-      categoria: data.categoria,
-      etiqueta: data.etiqueta,
-      imagenUrl: data.imagenUrl,
-      specFileUrl: data.specFileUrl, // ✅ agregado
+      imagenUrl: data.imagenUrl ?? null,
+      specFileUrl: data.specFileUrl ?? null,
+      estado: data.estado ?? 'activo',
     };
 
-    return this.prisma.product.create({ data: cleanData });
+    // 🔗 Conectar categoría si existe
+    if (data.categoria) {
+      const categoria = await this.prisma.categoria.findFirst({
+        where: { nombre: data.categoria },
+      });
+      if (categoria) {
+        cleanData.categoria = { connect: { id: categoria.id } };
+      }
+    }
+
+    // 🔗 Conectar etiqueta si existe
+    if (data.etiqueta) {
+      const etiqueta = await this.prisma.etiqueta.findFirst({
+        where: { nombre: data.etiqueta },
+      });
+      if (etiqueta) {
+        cleanData.etiqueta = { connect: { id: etiqueta.id } };
+      }
+    }
+
+    return this.prisma.product.create({
+      data: cleanData,
+    });
   }
 
-  // ✏️ Actualizar producto
+  // ✏️ Actualizar producto (seguro con relaciones)
   async update(id: number, data: Partial<CreateProductDto>) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
-    const cleanData: Partial<CreateProductDto> = {};
+    const cleanData: Prisma.ProductUpdateInput = {
+      nombre: data.nombre ?? undefined,
+      descripcion: data.descripcion ?? undefined,
+      precio: data.precio ?? undefined,
+      stock: data.stock ?? undefined,
+      imagenUrl: data.imagenUrl ?? undefined,
+      specFileUrl: data.specFileUrl ?? undefined,
+      estado: data.estado ?? undefined,
+    };
 
-    if (data.nombre !== undefined) cleanData.nombre = data.nombre;
-    if (data.descripcion !== undefined)
-      cleanData.descripcion = data.descripcion;
-    if (data.precio !== undefined) cleanData.precio = data.precio;
-    if (data.stock !== undefined) cleanData.stock = data.stock;
-    if (data.categoria !== undefined) cleanData.categoria = data.categoria;
-    if (data.etiqueta !== undefined) cleanData.etiqueta = data.etiqueta;
-    if (data.imagenUrl !== undefined) cleanData.imagenUrl = data.imagenUrl;
-    if (data.specFileUrl !== undefined)
-      cleanData.specFileUrl = data.specFileUrl;
-    if (data.estado !== undefined) cleanData.estado = data.estado;
+    // 🔗 Si viene una categoría, conectar la relación
+    if (data.categoria) {
+      const categoria = await this.prisma.categoria.findFirst({
+        where: { nombre: data.categoria },
+      });
+      if (categoria) {
+        cleanData.categoria = { connect: { id: categoria.id } };
+      } else {
+        cleanData.categoria = { disconnect: true }; // evita error si no existe
+      }
+    }
+
+    // 🔗 Si viene una etiqueta, conectar la relación
+    if (data.etiqueta) {
+      const etiqueta = await this.prisma.etiqueta.findFirst({
+        where: { nombre: data.etiqueta },
+      });
+      if (etiqueta) {
+        cleanData.etiqueta = { connect: { id: etiqueta.id } };
+      } else {
+        cleanData.etiqueta = { disconnect: true };
+      }
+    }
 
     // 🧠 Estado automático según stock
     if (data.stock !== undefined) {

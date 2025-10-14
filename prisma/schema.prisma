@@ -9,27 +9,51 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  nombre        String
-  descripcion   String?
-  precio        Float
-  stock         Int      @default(0)
-  categoria     String   @default("General")
-  etiqueta      String?
-  imagenUrl     String?
-  specFileUrl   String?  // ej. "abc123/ficha-tecnica-1728500012.pdf"
-  estado        String   @default("activo")
-  createdAt     DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  id          Int        @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Float
+  stock       Int        @default(0)
+  categoriaId Int?
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+  etiquetaId  Int?
+  etiqueta    Etiqueta?  @relation(fields: [etiquetaId], references: [id])
+  imagenUrl   String?
+  specFileUrl String?
+  estado      String     @default("activo")
+  createdAt   DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model User {
-  id           Int      @id @default(autoincrement())     // ID único
-  username     String   @unique                          // Nombre de usuario
-  passwordHash String                                   // Contraseña encriptada
-  role         String   @default("user")                // Rol (admin o user)
-  createdAt    DateTime @default(now()) @db.Timestamptz(6) // Fecha de creación
-  updatedAt    DateTime @default(now()) @updatedAt @db.Timestamptz(6) // Última actualización
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("user")
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
+model Configuracion {
+  id        Int      @id @default(1)
+  whatsapp  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
+model Categoria {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique
+  productos Product[] // ✅ relación inversa
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Etiqueta {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique
+  color     String
+  productos Product[] // ✅ relación inversa
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
