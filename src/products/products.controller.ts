@@ -9,6 +9,7 @@ import {
   Param,
   ParseIntPipe,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -27,7 +28,11 @@ export class ProductsController {
   // 🔎 GET /products/:id — obtener producto por ID
   @Get(':id')
   async getProduct(@Param('id', ParseIntPipe) id: number) {
-    return this.productsService.getById(id);
+    const product = await this.productsService.getById(id);
+    if (!product) {
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+    }
+    return product;
   }
 
   // 🛠️ POST /products — crear nuevo producto
@@ -35,9 +40,9 @@ export class ProductsController {
   async createProduct(@Body() body: CreateProductDto) {
     /**
      * body puede contener:
-     * - nombre, descripcion, precio, stock, categoria, etiqueta
+     * - nombre, descripcion, precio, categoria, etiqueta
      * - imagenUrl (string)
-     * - specFileUrl (string) 👈 NUEVO CAMPO OPCIONAL
+     * - specFileUrl (string) 👈 campo opcional
      */
     return this.productsService.create(body);
   }
@@ -48,12 +53,11 @@ export class ProductsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateProductDto,
   ) {
-    /**
-     * body puede contener:
-     * - Cualquier campo de CreateProductDto
-     * - incluyendo specFileUrl 👈 (nuevo)
-     */
-    return this.productsService.update(id, body);
+    const updated = await this.productsService.update(id, body);
+    if (!updated) {
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+    }
+    return updated;
   }
 
   // 🗑️ DELETE /products/:id — eliminar producto + imagen + archivo de especificaciones
@@ -67,15 +71,9 @@ export class ProductsController {
       }
 
       return { message: `✅ Producto ${id} eliminado correctamente` };
-    } catch (err) {
-      // 🧠 Manejo de errores personalizados
-      if (err instanceof Error && err.message.includes('stock')) {
-        return {
-          message: err.message,
-          blocked: true, // 👈 indicador para frontend
-        };
-      }
-      throw err; // otros errores
+    } catch (error) {
+      console.error('❌ Error al eliminar producto:', error);
+      throw new InternalServerErrorException('Error al eliminar el producto');
     }
   }
 }

@@ -13,7 +13,6 @@ model Product {
   nombre      String
   descripcion String?
   precio      Float
-  stock       Int        @default(0)
   categoriaId Int?
   categoria   Categoria? @relation(fields: [categoriaId], references: [id])
   etiquetaId  Int?

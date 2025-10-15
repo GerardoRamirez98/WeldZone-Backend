@@ -9,7 +9,6 @@ interface CreateProductDto {
   nombre: string;
   descripcion?: string;
   precio: number;
-  stock: number;
   categoria?: string;
   etiqueta?: string;
   imagenUrl?: string;
@@ -74,7 +73,6 @@ export class ProductsService {
       nombre: data.nombre,
       descripcion: data.descripcion ?? null,
       precio: data.precio,
-      stock: data.stock,
       imagenUrl: data.imagenUrl ?? null,
       specFileUrl: data.specFileUrl ?? null,
       estado: data.estado ?? 'activo',
@@ -114,7 +112,6 @@ export class ProductsService {
       nombre: data.nombre ?? undefined,
       descripcion: data.descripcion ?? undefined,
       precio: data.precio ?? undefined,
-      stock: data.stock ?? undefined,
       imagenUrl: data.imagenUrl ?? undefined,
       specFileUrl: data.specFileUrl ?? undefined,
       estado: data.estado ?? undefined,
@@ -144,15 +141,6 @@ export class ProductsService {
       }
     }
 
-    // 🧠 Estado automático según stock
-    if (data.stock !== undefined) {
-      if (data.stock <= 0) {
-        cleanData.estado = 'agotado';
-      } else if (data.stock > 0 && producto.estado === 'agotado') {
-        cleanData.estado = 'activo';
-      }
-    }
-
     // ⚙️ Si la imagen cambió, eliminar la anterior del bucket
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
@@ -173,13 +161,6 @@ export class ProductsService {
   async delete(id: number) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
-
-    // ⚠️ Verificar si aún tiene stock
-    if (producto.stock > 0) {
-      throw new Error(
-        `⚠️ No se puede eliminar el producto "${producto.nombre}" porque aún tiene ${producto.stock} unidades en stock.`,
-      );
-    }
 
     // 🧹 Eliminar imagen si existe
     if (producto.imagenUrl) {
