@@ -12,8 +12,8 @@ export class CreateProductDto {
   precio!: number;
 
   @IsOptional()
-  @IsString()
-  categoriaId?: string;
+  @IsNumber()
+  categoriaId?: number;
 
   @IsOptional()
   @IsString()
