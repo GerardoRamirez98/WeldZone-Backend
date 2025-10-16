@@ -1,18 +1,16 @@
-// src/products/products.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Prisma } from '@prisma/client';
 
-/** DTO interno del servicio (no el de controller) */
 interface CreateProductDto {
   nombre: string;
   descripcion?: string;
   precio: number;
-  categoria?: string;
-  etiqueta?: string;
+  categoriaId?: number;
+  etiquetaId?: number;
   imagenUrl?: string;
-  specFileUrl?: string; // ✅ nuevo campo
+  specFileUrl?: string;
   estado?: string;
 }
 
@@ -39,23 +37,18 @@ export class ProductsService {
     }) as unknown as SupabaseClient;
   }
 
-  // 📦 Obtener todos los productos con sus relaciones
   // 📦 Obtener todos los productos con relaciones
   async getAll() {
     return this.prisma.product.findMany({
       include: {
-        categoria: {
-          select: { id: true, nombre: true },
-        },
-        etiqueta: {
-          select: { id: true, nombre: true, color: true },
-        },
+        categoria: { select: { id: true, nombre: true } },
+        etiqueta: { select: { id: true, nombre: true, color: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  // 🔎 Obtener producto por ID
+  // 🔍 Obtener producto por ID
   async getById(id: number) {
     return this.prisma.product.findUnique({
       where: { id },
@@ -66,9 +59,8 @@ export class ProductsService {
     });
   }
 
-  // 🛠️ Crear producto con relaciones seguras
+  // 🛠️ Crear producto con relaciones por ID
   async create(data: CreateProductDto) {
-    // Tipamos explícitamente el tipo compatible con Prisma
     const cleanData: Prisma.ProductCreateInput = {
       nombre: data.nombre,
       descripcion: data.descripcion ?? null,
@@ -78,29 +70,17 @@ export class ProductsService {
       estado: data.estado ?? 'activo',
     };
 
-    // 🔗 Conectar categoría si existe
-    if (data.categoria) {
-      const categoria = await this.prisma.categoria.findFirst({
-        where: { nombre: data.categoria },
-      });
-      if (categoria) {
-        cleanData.categoria = { connect: { id: categoria.id } };
-      }
+    // 🔗 Conectar categoría por ID
+    if (data.categoriaId) {
+      cleanData.categoria = { connect: { id: data.categoriaId } };
     }
 
-    // 🔗 Conectar etiqueta si existe
-    if (data.etiqueta) {
-      const etiqueta = await this.prisma.etiqueta.findFirst({
-        where: { nombre: data.etiqueta },
-      });
-      if (etiqueta) {
-        cleanData.etiqueta = { connect: { id: etiqueta.id } };
-      }
+    // 🔗 Conectar etiqueta por ID
+    if (data.etiquetaId) {
+      cleanData.etiqueta = { connect: { id: data.etiquetaId } };
     }
 
-    return this.prisma.product.create({
-      data: cleanData,
-    });
+    return this.prisma.product.create({ data: cleanData });
   }
 
   // ✏️ Actualizar producto (seguro con relaciones)
@@ -117,36 +97,20 @@ export class ProductsService {
       estado: data.estado ?? undefined,
     };
 
-    // 🔗 Si viene una categoría, conectar la relación
-    if (data.categoria) {
-      const categoria = await this.prisma.categoria.findFirst({
-        where: { nombre: data.categoria },
-      });
-      if (categoria) {
-        cleanData.categoria = { connect: { id: categoria.id } };
-      } else {
-        cleanData.categoria = { disconnect: true }; // evita error si no existe
-      }
+    // 🔗 Conectar categoría si viene ID
+    if (data.categoriaId) {
+      cleanData.categoria = { connect: { id: data.categoriaId } };
     }
 
-    // 🔗 Si viene una etiqueta, conectar la relación
-    if (data.etiqueta) {
-      const etiqueta = await this.prisma.etiqueta.findFirst({
-        where: { nombre: data.etiqueta },
-      });
-      if (etiqueta) {
-        cleanData.etiqueta = { connect: { id: etiqueta.id } };
-      } else {
-        cleanData.etiqueta = { disconnect: true };
-      }
+    // 🔗 Conectar etiqueta si viene ID
+    if (data.etiquetaId) {
+      cleanData.etiqueta = { connect: { id: data.etiquetaId } };
     }
 
-    // ⚙️ Si la imagen cambió, eliminar la anterior del bucket
+    // ⚙️ Reemplazar archivos si cambiaron
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
     }
-
-    // ⚙️ Si el archivo de especificaciones cambió, eliminar el anterior
     if (data.specFileUrl && data.specFileUrl !== producto.specFileUrl) {
       await this.deleteSpecFileFromBucket(producto.specFileUrl);
     }
@@ -157,17 +121,15 @@ export class ProductsService {
     });
   }
 
-  // 🗑️ Eliminar producto + recursos de Supabase
+  // 🗑️ Eliminar producto + archivos en Supabase
   async delete(id: number) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
-    // 🧹 Eliminar imagen si existe
     if (producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
     }
 
-    // 🧹 Eliminar archivo de especificaciones si existe
     if (producto.specFileUrl) {
       await this.deleteSpecFileFromBucket(producto.specFileUrl);
     }
@@ -182,19 +144,14 @@ export class ProductsService {
       const parts = publicUrl.split('/');
       const bucketIndex = parts.indexOf(this.imageBucket);
       if (bucketIndex === -1) return;
-
       const path = parts.slice(bucketIndex + 1).join('/');
       if (!path) return;
 
       const { error } = await this.supabase.storage
         .from(this.imageBucket)
         .remove([path]);
-
-      if (error) {
+      if (error)
         console.error('❌ Error al borrar imagen del bucket:', error.message);
-      } else {
-        console.log(`🗑️ Imagen eliminada del bucket: ${path}`);
-      }
     } catch (err) {
       console.error('⚠️ Error interno al borrar imagen:', err);
     }
@@ -207,24 +164,17 @@ export class ProductsService {
       const parts = publicUrl.split('/');
       const bucketIndex = parts.indexOf(this.specsBucket);
       if (bucketIndex === -1) return;
-
       const path = parts.slice(bucketIndex + 1).join('/');
       if (!path) return;
 
       const { error } = await this.supabase.storage
         .from(this.specsBucket)
         .remove([path]);
-
-      if (error) {
+      if (error)
         console.error(
           '❌ Error al borrar archivo de especificaciones:',
           error.message,
         );
-      } else {
-        console.log(
-          `🗑️ Archivo de especificaciones eliminado del bucket: ${path}`,
-        );
-      }
     } catch (err) {
       console.error('⚠️ Error interno al borrar especificación:', err);
     }

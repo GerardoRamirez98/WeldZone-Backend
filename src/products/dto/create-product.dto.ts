@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateProductDto {
@@ -8,22 +9,24 @@ export class CreateProductDto {
   @IsString()
   descripcion?: string;
 
+  @Type(() => Number)
   @IsNumber()
   precio!: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   categoriaId?: number;
 
   @IsOptional()
-  @IsString()
-  etiqueta?: string;
+  @Type(() => Number)
+  @IsNumber()
+  etiquetaId?: number;
 
   @IsOptional()
   @IsString()
   imagenUrl?: string;
 
-  // 👇 nuevo campo para archivo de especificaciones (PDF/DOCX)
   @IsOptional()
   @IsString()
   specFileUrl?: string;
