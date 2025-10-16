@@ -13,7 +13,7 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
-  categoria?: string;
+  categoriaId?: string;
 
   @IsOptional()
   @IsString()
