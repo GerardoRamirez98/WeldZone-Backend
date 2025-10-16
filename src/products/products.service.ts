@@ -27,9 +27,7 @@ export class ProductsService {
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error(
-        '❌ Faltan variables de entorno: SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY.',
-      );
+      console.warn('⚠️ Variables de entorno Supabase faltantes o incorrectas');
     }
 
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -59,55 +57,45 @@ export class ProductsService {
     });
   }
 
-  // 🛠️ Crear producto con relaciones por ID
+  // 🛠️ Crear producto con IDs directos
   async create(data: CreateProductDto) {
-    const cleanData: Prisma.ProductCreateInput = {
+    const cleanData: Prisma.ProductUncheckedCreateInput = {
       nombre: data.nombre,
       descripcion: data.descripcion ?? null,
       precio: data.precio,
       imagenUrl: data.imagenUrl ?? null,
       specFileUrl: data.specFileUrl ?? null,
       estado: data.estado ?? 'activo',
+      categoriaId: data.categoriaId ?? null,
+      etiquetaId: data.etiquetaId ?? null,
     };
 
-    // 🔗 Conectar categoría por ID
-    if (data.categoriaId) {
-      cleanData.categoria = { connect: { id: data.categoriaId } };
-    }
-
-    // 🔗 Conectar etiqueta por ID
-    if (data.etiquetaId) {
-      cleanData.etiqueta = { connect: { id: data.etiquetaId } };
-    }
-
-    return this.prisma.product.create({ data: cleanData });
+    return this.prisma.product.create({
+      data: cleanData,
+      include: {
+        categoria: { select: { id: true, nombre: true } },
+        etiqueta: { select: { id: true, nombre: true, color: true } },
+      },
+    });
   }
 
-  // ✏️ Actualizar producto (seguro con relaciones)
+  // ✏️ Actualizar producto (con control de relaciones)
   async update(id: number, data: Partial<CreateProductDto>) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
-    const cleanData: Prisma.ProductUpdateInput = {
+    const cleanData: Prisma.ProductUncheckedUpdateInput = {
       nombre: data.nombre ?? undefined,
       descripcion: data.descripcion ?? undefined,
       precio: data.precio ?? undefined,
       imagenUrl: data.imagenUrl ?? undefined,
       specFileUrl: data.specFileUrl ?? undefined,
       estado: data.estado ?? undefined,
+      categoriaId: data.categoriaId ?? producto.categoriaId ?? null,
+      etiquetaId: data.etiquetaId ?? producto.etiquetaId ?? null,
     };
 
-    // 🔗 Conectar categoría si viene ID
-    if (data.categoriaId) {
-      cleanData.categoria = { connect: { id: data.categoriaId } };
-    }
-
-    // 🔗 Conectar etiqueta si viene ID
-    if (data.etiquetaId) {
-      cleanData.etiqueta = { connect: { id: data.etiquetaId } };
-    }
-
-    // ⚙️ Reemplazar archivos si cambiaron
+    // ⚙️ Si cambió la imagen o archivo, eliminamos el anterior
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
     }
@@ -118,6 +106,10 @@ export class ProductsService {
     return this.prisma.product.update({
       where: { id },
       data: cleanData,
+      include: {
+        categoria: { select: { id: true, nombre: true } },
+        etiqueta: { select: { id: true, nombre: true, color: true } },
+      },
     });
   }
 

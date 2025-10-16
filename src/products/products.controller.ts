@@ -40,9 +40,9 @@ export class ProductsController {
   async createProduct(@Body() body: CreateProductDto) {
     /**
      * body puede contener:
-     * - nombre, descripcion, precio, categoria, etiqueta
-     * - imagenUrl (string)
-     * - specFileUrl (string) 👈 campo opcional
+     * - nombre, descripcion, precio
+     * - categoriaId, etiquetaId (relaciones)
+     * - imagenUrl, specFileUrl, estado (opcionales)
      */
     return this.productsService.create(body);
   }
