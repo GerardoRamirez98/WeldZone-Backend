@@ -8,7 +8,8 @@ import 'reflect-metadata';
 import { CorsOptionsDelegate, CorsRequest } from 'cors';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  // ✅ Quitamos cors:false
+  const app = await NestFactory.create(AppModule);
 
   // 🧩 Orígenes permitidos (dinámico desde .env)
   const allowedOrigins = (process.env.FRONTEND_URL ?? '')
@@ -16,7 +17,7 @@ async function bootstrap() {
     .map((url) => url.trim())
     .filter(Boolean);
 
-  // ✅ Configuración CORS robusta, sin warnings ni assertions
+  // ✅ Configuración CORS robusta
   const corsOptionsDelegate: CorsOptionsDelegate<CorsRequest> = (
     req,
     callback,
@@ -48,7 +49,7 @@ async function bootstrap() {
   // 🔧 Activamos CORS con configuración personalizada
   app.enableCors(corsOptionsDelegate);
 
-  // 🧰 Validaciones automáticas globales (DTOs)
+  // 🧰 Validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
