@@ -64,3 +64,4 @@ async function bootstrap() {
 }
 
 void bootstrap();
+// Redeploy trigger
