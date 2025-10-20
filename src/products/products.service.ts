@@ -36,7 +36,6 @@ export class ProductsService {
   }
 
   // 📦 Obtener todos los productos con relaciones
-  // 📦 Obtener todos los productos con relaciones
   async getAll() {
     try {
       return await this.prisma.product.findMany({
@@ -47,13 +46,11 @@ export class ProductsService {
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: unknown) {
+      console.error('❌ Error detallado al obtener productos:', error);
       if (error instanceof Error) {
-        console.error('❌ Error al obtener productos:', error.message);
-        throw new Error(`Error al obtener productos: ${error.message}`);
-      } else {
-        console.error('❌ Error desconocido al obtener productos:', error);
-        throw new Error('Error desconocido al obtener productos');
+        throw new Error(`Error Prisma: ${error.message}`);
       }
+      throw new Error('Error desconocido en getAll()');
     }
   }
 
