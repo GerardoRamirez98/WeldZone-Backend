@@ -36,14 +36,25 @@ export class ProductsService {
   }
 
   // 📦 Obtener todos los productos con relaciones
+  // 📦 Obtener todos los productos con relaciones
   async getAll() {
-    return this.prisma.product.findMany({
-      include: {
-        categoria: { select: { id: true, nombre: true } },
-        etiqueta: { select: { id: true, nombre: true, color: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    try {
+      return await this.prisma.product.findMany({
+        include: {
+          categoria: { select: { id: true, nombre: true } },
+          etiqueta: { select: { id: true, nombre: true, color: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('❌ Error al obtener productos:', error.message);
+        throw new Error(`Error al obtener productos: ${error.message}`);
+      } else {
+        console.error('❌ Error desconocido al obtener productos:', error);
+        throw new Error('Error desconocido al obtener productos');
+      }
+    }
   }
 
   // 🔍 Obtener producto por ID
