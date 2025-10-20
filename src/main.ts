@@ -64,4 +64,4 @@ async function bootstrap() {
 }
 
 void bootstrap();
-// Redeploy trigger
+// Trigger redeploy to apply Prisma disable prepared statements
