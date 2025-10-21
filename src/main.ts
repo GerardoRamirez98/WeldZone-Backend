@@ -10,25 +10,28 @@ import { CorsOptionsDelegate, CorsRequest } from 'cors';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
 
-  // 🧩 Orígenes permitidos (dinámico desde .env)
+  // 🧩 Orígenes permitidos (desde .env)
   const allowedOrigins = (process.env.FRONTEND_URL ?? '')
     .split(',')
     .map((url) => url.trim())
     .filter(Boolean);
 
-  // ✅ Configuración CORS robusta, sin warnings ni assertions
+  // ✅ Configuración CORS robusta y segura
   const corsOptionsDelegate: CorsOptionsDelegate<CorsRequest> = (
     req,
     callback,
   ) => {
     const originHeader = req.headers.origin;
 
-    // Permitir solicitudes sin origin (ej: Postman, server-side)
+    // 🔍 Log para saber quién está accediendo
+    console.log('🔍 Solicitud desde:', originHeader);
+
+    // Permitir solicitudes sin origin (Postman, server-side, etc.)
     if (!originHeader) {
       return callback(null, { origin: true });
     }
 
-    // Si el origin está permitido, lo aceptamos
+    // Si el origin está permitido
     if (allowedOrigins.includes(originHeader)) {
       return callback(null, {
         origin: true,
@@ -38,17 +41,18 @@ async function bootstrap() {
       });
     }
 
-    // Si el origin no está permitido, lo bloqueamos
-    console.warn(`🚫 Bloqueado por CORS: ${originHeader}`);
-    return callback(new Error(`CORS not allowed for origin: ${originHeader}`), {
-      origin: false,
-    });
+    // 🚫 Si el origin no está permitido, lo bloqueamos pero sin romper el servidor
+    console.warn(
+      `🚫 Bloqueado por CORS (origen no permitido): ${originHeader}`,
+    );
+    return callback(null, { origin: false });
   };
 
-  // 🔧 Activamos CORS con configuración personalizada
+  // 🔧 Activar CORS con configuración personalizada
+  console.log('🌍 CORS orígenes permitidos:', allowedOrigins);
   app.enableCors(corsOptionsDelegate);
 
-  // 🧰 Validaciones automáticas globales (DTOs)
+  // 🧰 Validaciones globales (DTOs)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -57,7 +61,7 @@ async function bootstrap() {
     }),
   );
 
-  // 🚀 Iniciamos servidor
+  // 🚀 Iniciar servidor
   await app.listen(process.env.PORT ?? 3000);
   console.log(`🚀 API corriendo en: ${await app.getUrl()}`);
 }
