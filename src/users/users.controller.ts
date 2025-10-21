@@ -8,10 +8,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { User } from '@prisma/client';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // ✅ Guard JWT
-import { RolesGuard } from '../auth/roles.guard'; // ✅ Guard de roles
-import { Roles } from '../auth/roles.decorator'; // ✅ Decorador de roles
+import { Users } from '@prisma/client'; // 👈 Cambio aquí (de User → Users)
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard) // 👈 Todas las rutas requieren estar autenticado
@@ -20,19 +20,21 @@ export class UsersController {
 
   // ✅ Crear usuario (solo si es admin)
   @Post()
-  @UseGuards(RolesGuard) // 👈 Aplica el RolesGuard
-  @Roles('admin') // 👈 Solo usuarios con rol 'admin'
+  @UseGuards(RolesGuard)
+  @Roles('admin')
   async create(
     @Body('username') username: string,
     @Body('password') password: string,
     @Body('role') role: string,
-  ): Promise<User> {
+  ): Promise<Users> {
+    // 👈 Ajustado el tipo de retorno
     return await this.usersService.create(username, password, role);
   }
 
   // ✅ Listar usuarios (solo autenticado)
   @Get()
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<Users[]> {
+    // 👈 Ajustado el tipo de retorno
     return await this.usersService.findAll();
   }
 
@@ -40,7 +42,8 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  async delete(@Param('id') id: string): Promise<User> {
+  async delete(@Param('id') id: string): Promise<Users> {
+    // 👈 Ajustado el tipo
     return await this.usersService.delete(Number(id));
   }
 }

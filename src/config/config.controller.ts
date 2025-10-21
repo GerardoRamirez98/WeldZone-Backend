@@ -8,7 +8,7 @@ import {
   Param,
 } from '@nestjs/common';
 import { ConfigService } from './config.service';
-import type { Configuracion, Categoria, Etiqueta } from '@prisma/client';
+import type { Configuraciones, Categorias, Etiquetas } from '@prisma/client';
 
 @Controller('config')
 export class ConfigController {
@@ -20,7 +20,7 @@ export class ConfigController {
 
   /** 🔹 GET /config → devuelve configuración actual */
   @Get()
-  async getConfig(): Promise<Configuracion> {
+  async getConfig(): Promise<Configuraciones> {
     return this.configService.getConfig();
   }
 
@@ -28,7 +28,7 @@ export class ConfigController {
   @Put()
   async updateConfig(
     @Body() body: { whatsapp: string },
-  ): Promise<Configuracion> {
+  ): Promise<Configuraciones> {
     return this.configService.updateConfig(body.whatsapp);
   }
 
@@ -38,13 +38,13 @@ export class ConfigController {
 
   /** 🔹 GET /config/categorias → lista todas las categorías */
   @Get('categorias')
-  async getCategorias(): Promise<Categoria[]> {
+  async getCategorias(): Promise<Categorias[]> {
     return this.configService.getCategorias();
   }
 
   /** 🔹 POST /config/categorias → crea una nueva categoría */
   @Post('categorias')
-  async addCategoria(@Body() body: { nombre: string }): Promise<Categoria> {
+  async addCategoria(@Body() body: { nombre: string }): Promise<Categorias> {
     return this.configService.addCategoria(body.nombre);
   }
 
@@ -53,17 +53,13 @@ export class ConfigController {
   async updateCategoria(
     @Param('id') id: string,
     @Body() body: { nombre: string },
-  ): Promise<Categoria> {
-    const updated: Categoria = await this.configService.updateCategoria(
-      Number(id),
-      body.nombre,
-    );
-    return updated;
+  ): Promise<Categorias> {
+    return this.configService.updateCategoria(Number(id), body.nombre);
   }
 
   /** 🔹 DELETE /config/categorias/:id → elimina una categoría */
   @Delete('categorias/:id')
-  async deleteCategoria(@Param('id') id: string): Promise<Categoria> {
+  async deleteCategoria(@Param('id') id: string): Promise<Categorias> {
     return this.configService.deleteCategoria(Number(id));
   }
 
@@ -73,7 +69,7 @@ export class ConfigController {
 
   /** 🔹 GET /config/etiquetas → lista todas las etiquetas */
   @Get('etiquetas')
-  async getEtiquetas(): Promise<Etiqueta[]> {
+  async getEtiquetas(): Promise<Etiquetas[]> {
     return this.configService.getEtiquetas();
   }
 
@@ -81,7 +77,7 @@ export class ConfigController {
   @Post('etiquetas')
   async addEtiqueta(
     @Body() body: { nombre: string; color: string },
-  ): Promise<Etiqueta> {
+  ): Promise<Etiquetas> {
     return this.configService.addEtiqueta(body.nombre, body.color);
   }
 
@@ -90,13 +86,13 @@ export class ConfigController {
   async updateEtiqueta(
     @Param('id') id: string,
     @Body() body: { color: string },
-  ): Promise<Etiqueta> {
+  ): Promise<Etiquetas> {
     return this.configService.updateEtiqueta(Number(id), body.color);
   }
 
   /** 🔹 DELETE /config/etiquetas/:id → elimina una etiqueta */
   @Delete('etiquetas/:id')
-  async deleteEtiqueta(@Param('id') id: string): Promise<Etiqueta> {
+  async deleteEtiqueta(@Param('id') id: string): Promise<Etiquetas> {
     return this.configService.deleteEtiqueta(Number(id));
   }
 }

@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Configuracion, Categoria, Etiqueta } from '@prisma/client';
+import type { Configuraciones, Categorias, Etiquetas } from '@prisma/client';
 
 @Injectable()
 export class ConfigService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ✅ ====== CONFIGURACIÓN GENERAL (WhatsApp) ======
-  async getConfig(): Promise<Configuracion> {
-    const config: Configuracion = await this.prisma.configuracion.upsert({
+  async getConfig(): Promise<Configuraciones> {
+    const config = await this.prisma.configuraciones.upsert({
       where: { id: 1 },
       update: {},
       create: { id: 1, whatsapp: '' },
@@ -16,8 +16,8 @@ export class ConfigService {
     return config;
   }
 
-  async updateConfig(whatsapp: string): Promise<Configuracion> {
-    const updated: Configuracion = await this.prisma.configuracion.upsert({
+  async updateConfig(whatsapp: string): Promise<Configuraciones> {
+    const updated = await this.prisma.configuraciones.upsert({
       where: { id: 1 },
       update: { whatsapp },
       create: { id: 1, whatsapp },
@@ -26,63 +26,55 @@ export class ConfigService {
   }
 
   // 🟡 ====== CATEGORÍAS ======
-  async getCategorias(): Promise<Categoria[]> {
-    const categorias: Categoria[] = await this.prisma.categoria.findMany({
+  async getCategorias(): Promise<Categorias[]> {
+    return await this.prisma.categorias.findMany({
       orderBy: { nombre: 'asc' },
     });
-    return categorias;
   }
 
-  async addCategoria(nombre: string): Promise<Categoria> {
-    const nueva: Categoria = await this.prisma.categoria.create({
+  async addCategoria(nombre: string): Promise<Categorias> {
+    return await this.prisma.categorias.create({
       data: { nombre },
     });
-    return nueva;
   }
 
   // ✏️ Actualizar nombre de una categoría
-  async updateCategoria(id: number, nombre: string): Promise<Categoria> {
-    const updated = await this.prisma.categoria.update({
+  async updateCategoria(id: number, nombre: string): Promise<Categorias> {
+    return await this.prisma.categorias.update({
       where: { id },
       data: { nombre },
     });
-    return updated;
   }
 
-  async deleteCategoria(id: number): Promise<Categoria> {
-    const eliminada: Categoria = await this.prisma.categoria.delete({
+  async deleteCategoria(id: number): Promise<Categorias> {
+    return await this.prisma.categorias.delete({
       where: { id },
     });
-    return eliminada;
   }
 
   // 🟣 ====== ETIQUETAS ======
-  async getEtiquetas(): Promise<Etiqueta[]> {
-    const etiquetas: Etiqueta[] = await this.prisma.etiqueta.findMany({
+  async getEtiquetas(): Promise<Etiquetas[]> {
+    return await this.prisma.etiquetas.findMany({
       orderBy: { nombre: 'asc' },
     });
-    return etiquetas;
   }
 
-  async addEtiqueta(nombre: string, color: string): Promise<Etiqueta> {
-    const nueva: Etiqueta = await this.prisma.etiqueta.create({
+  async addEtiqueta(nombre: string, color: string): Promise<Etiquetas> {
+    return await this.prisma.etiquetas.create({
       data: { nombre, color },
     });
-    return nueva;
   }
 
-  async updateEtiqueta(id: number, color: string): Promise<Etiqueta> {
-    const actualizada: Etiqueta = await this.prisma.etiqueta.update({
+  async updateEtiqueta(id: number, color: string): Promise<Etiquetas> {
+    return await this.prisma.etiquetas.update({
       where: { id },
       data: { color },
     });
-    return actualizada;
   }
 
-  async deleteEtiqueta(id: number): Promise<Etiqueta> {
-    const eliminada: Etiqueta = await this.prisma.etiqueta.delete({
+  async deleteEtiqueta(id: number): Promise<Etiquetas> {
+    return await this.prisma.etiquetas.delete({
       where: { id },
     });
-    return eliminada;
   }
 }

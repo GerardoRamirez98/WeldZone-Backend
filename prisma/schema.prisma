@@ -8,51 +8,62 @@ datasource db {
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
-model Product {
-  id          Int        @id @default(autoincrement())
-  nombre      String
-  descripcion String?
-  precio      Float
-  categoriaId Int?
-  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
-  etiquetaId  Int?
-  etiqueta    Etiqueta?  @relation(fields: [etiquetaId], references: [id])
-  imagenUrl   String?
-  specFileUrl String?
-  estado      String     @default("activo")
-  createdAt   DateTime   @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
-}
-
-model User {
+model Users {
   id           Int      @id @default(autoincrement())
   username     String   @unique
   passwordHash String
   role         String   @default("user")
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@map("User")
 }
 
-model Configuracion {
+model Configuraciones {
   id        Int      @id @default(1)
   whatsapp  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("Configuracion")
 }
 
-model Categoria {
-  id        Int       @id @default(autoincrement())
-  nombre    String    @unique
-  productos Product[] // ✅ relación inversa
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model Categorias {
+  id        Int         @id @default(autoincrement())
+  nombre    String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  productos Productos[]
+
+  @@map("Categoria")
 }
 
-model Etiqueta {
-  id        Int       @id @default(autoincrement())
-  nombre    String    @unique
+model Etiquetas {
+  id        Int         @id @default(autoincrement())
+  nombre    String      @unique
   color     String
-  productos Product[] // ✅ relación inversa
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  productos Productos[]
+
+  @@map("Etiqueta")
+}
+
+model Productos {
+  id          Int         @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Float
+  stock       Int         @default(0)
+  imagenUrl   String?
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  estado      String      @default("activo")
+  specFileUrl String?
+  categoriaId Int?
+  etiquetaId  Int?
+  categoria   Categorias? @relation(fields: [categoriaId], references: [id])
+  etiqueta    Etiquetas?  @relation(fields: [etiquetaId], references: [id])
+
+  @@map("Product")
 }

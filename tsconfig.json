@@ -16,6 +16,6 @@
     },
     "outDir": "./dist"
   },
-  "include": ["src", "test-upload.js"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "test-upload.js"],
   "exclude": ["node_modules", "dist"]
 }

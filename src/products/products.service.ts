@@ -38,7 +38,7 @@ export class ProductsService {
   // 📦 Obtener todos los productos con relaciones
   async getAll() {
     try {
-      return await this.prisma.product.findMany({
+      return await this.prisma.productos.findMany({
         include: {
           categoria: { select: { id: true, nombre: true } },
           etiqueta: { select: { id: true, nombre: true, color: true } },
@@ -56,7 +56,7 @@ export class ProductsService {
 
   // 🔍 Obtener producto por ID
   async getById(id: number) {
-    return this.prisma.product.findUnique({
+    return this.prisma.productos.findUnique({
       where: { id },
       include: {
         categoria: { select: { id: true, nombre: true } },
@@ -67,7 +67,7 @@ export class ProductsService {
 
   // 🛠️ Crear producto con IDs directos
   async create(data: CreateProductDto) {
-    const cleanData: Prisma.ProductUncheckedCreateInput = {
+    const cleanData: Prisma.ProductosUncheckedCreateInput = {
       nombre: data.nombre,
       descripcion: data.descripcion ?? null,
       precio: data.precio,
@@ -78,7 +78,7 @@ export class ProductsService {
       etiquetaId: data.etiquetaId ?? null,
     };
 
-    return this.prisma.product.create({
+    return this.prisma.productos.create({
       data: cleanData,
       include: {
         categoria: { select: { id: true, nombre: true } },
@@ -89,10 +89,10 @@ export class ProductsService {
 
   // ✏️ Actualizar producto (con control de relaciones)
   async update(id: number, data: Partial<CreateProductDto>) {
-    const producto = await this.prisma.product.findUnique({ where: { id } });
+    const producto = await this.prisma.productos.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
-    const cleanData: Prisma.ProductUncheckedUpdateInput = {
+    const cleanData: Prisma.ProductosUncheckedUpdateInput = {
       nombre: data.nombre ?? undefined,
       descripcion: data.descripcion ?? undefined,
       precio: data.precio ?? undefined,
@@ -103,7 +103,6 @@ export class ProductsService {
       etiquetaId: data.etiquetaId ?? producto.etiquetaId ?? null,
     };
 
-    // ⚙️ Si cambió la imagen o archivo, eliminamos el anterior
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
     }
@@ -111,7 +110,7 @@ export class ProductsService {
       await this.deleteSpecFileFromBucket(producto.specFileUrl);
     }
 
-    return this.prisma.product.update({
+    return this.prisma.productos.update({
       where: { id },
       data: cleanData,
       include: {
@@ -123,7 +122,7 @@ export class ProductsService {
 
   // 🗑️ Eliminar producto + archivos en Supabase
   async delete(id: number) {
-    const producto = await this.prisma.product.findUnique({ where: { id } });
+    const producto = await this.prisma.productos.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
     if (producto.imagenUrl) {
@@ -134,7 +133,7 @@ export class ProductsService {
       await this.deleteSpecFileFromBucket(producto.specFileUrl);
     }
 
-    return this.prisma.product.delete({ where: { id } });
+    return this.prisma.productos.delete({ where: { id } });
   }
 
   // 🧰 Eliminar imagen del bucket Supabase
