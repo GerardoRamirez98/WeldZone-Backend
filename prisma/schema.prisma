@@ -13,15 +13,16 @@ model Product {
   nombre      String
   descripcion String?
   precio      Float
-  categoriaId Int?
-  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
-  etiquetaId  Int?
-  etiqueta    Etiqueta?  @relation(fields: [etiquetaId], references: [id])
+  stock       Int        @default(0)
   imagenUrl   String?
-  specFileUrl String?
-  estado      String     @default("activo")
   createdAt   DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+  estado      String     @default("activo")
+  specFileUrl String?
+  categoriaId Int?
+  etiquetaId  Int?
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id])
+  etiqueta    Etiqueta?  @relation(fields: [etiquetaId], references: [id])
 }
 
 model User {
@@ -43,16 +44,16 @@ model Configuracion {
 model Categoria {
   id        Int       @id @default(autoincrement())
   nombre    String    @unique
-  productos Product[] // ✅ relación inversa
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  productos Product[]
 }
 
 model Etiqueta {
   id        Int       @id @default(autoincrement())
   nombre    String    @unique
   color     String
-  productos Product[] // ✅ relación inversa
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  productos Product[]
 }
