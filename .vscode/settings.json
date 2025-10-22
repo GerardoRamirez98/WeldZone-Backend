@@ -1,4 +1,29 @@
 {
+  // 🌐 Idiomas que acepta el corrector
+  "cSpell.language": "en,es",
+  "cSpell.dictionaries": ["en", "es"],
+
+  // ✅ Nuevo formato: habilitar o deshabilitar por tipo de archivo
+  "cSpell.enabledFileTypes": {
+    "*": true, // activa todos por defecto
+    "json": false, // desactiva revisión en JSON
+    "log": false,
+    "plaintext": true,
+    "typescript": true
+  },
+
+  // 🚫 Ignorar rutas innecesarias
+  "cSpell.ignorePaths": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    ".git",
+    "package-lock.json",
+    "yarn.lock"
+  ],
+
+  // 🧠 Palabras personalizadas del backend
   "cSpell.words": [
     "supabase",
     "nombre",
@@ -6,10 +31,21 @@
     "precio",
     "stock",
     "categoria",
+    "categorias",
     "etiqueta",
+    "etiquetas",
     "imagenUrl",
     "producto",
-    "etiqueta",
-    "encontrado"
+    "productos",
+    "encontrado",
+    "actualizado",
+    "eliminado",
+    "controlador",
+    "servicio",
+    "repositorio",
+    "nest",
+    "nestjs",
+    "prisma",
+    "railway"
   ]
 }

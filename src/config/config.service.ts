@@ -25,6 +25,21 @@ export class ConfigService {
     return updated;
   }
 
+  // 🆕 ====== MODO MANTENIMIENTO ======
+  async getMaintenance(): Promise<boolean> {
+    const config: Configuracion = await this.getConfig();
+    return Boolean(config.mantenimiento);
+  }
+
+  async setMaintenance(maintenance: boolean): Promise<Configuracion> {
+    const updated = await this.prisma.configuracion.upsert({
+      where: { id: 1 },
+      update: { mantenimiento: maintenance },
+      create: { id: 1, whatsapp: '', mantenimiento: maintenance },
+    });
+    return updated;
+  }
+
   // 🟡 ====== CATEGORÍAS ======
   async getCategorias(): Promise<Categoria[]> {
     const categorias: Categoria[] = await this.prisma.categoria.findMany({

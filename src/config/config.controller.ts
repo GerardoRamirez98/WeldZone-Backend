@@ -33,6 +33,25 @@ export class ConfigController {
   }
 
   // =============================
+  // 🟣 MODO MANTENIMIENTO
+  // =============================
+
+  /** 🔹 GET /config/mantenimiento → devuelve estado actual */
+  @Get('mantenimiento')
+  async getMaintenance(): Promise<{ mantenimiento: boolean }> {
+    const mantenimiento = await this.configService.getMaintenance();
+    return { mantenimiento };
+  }
+
+  /** 🔹 PUT /config/mantenimiento → activa o desactiva mantenimiento */
+  @Put('mantenimiento')
+  async setMaintenance(
+    @Body() body: { mantenimiento: boolean },
+  ): Promise<Configuracion> {
+    return this.configService.setMaintenance(body.mantenimiento);
+  }
+
+  // =============================
   // 🟡 CATEGORÍAS
   // =============================
 

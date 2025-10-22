@@ -35,10 +35,11 @@ model User {
 }
 
 model Configuracion {
-  id        Int      @id @default(1)
-  whatsapp  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(1)
+  whatsapp      String?
+  mantenimiento Boolean  @default(false) // ⚙️ Nuevo campo para el modo mantenimiento
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Categoria {
