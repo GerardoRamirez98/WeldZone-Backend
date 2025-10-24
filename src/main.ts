@@ -5,54 +5,58 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import 'reflect-metadata';
-import { CorsOptionsDelegate, CorsRequest } from 'cors';
+import type { CorsOptionsDelegate, CorsRequest } from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
 
-  // 🧩 Orígenes permitidos (desde .env)
-  const allowedOrigins = (process.env.FRONTEND_URL ?? '')
+  // Allowed origins from env (supports wildcard '*')
+  const originPatterns = (process.env.FRONTEND_URL ?? '')
     .split(',')
     .map((url) => url.trim())
     .filter(Boolean);
 
-  // ✅ Configuración CORS robusta y segura
-  const corsOptionsDelegate: CorsOptionsDelegate<CorsRequest> = (
-    req,
-    callback,
-  ) => {
+  const patternRegexes = originPatterns.map((pat) => {
+    const escaped = pat
+      .replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&')
+      .replace(/\*/g, '.*');
+    return new RegExp(`^${escaped}$`, 'i');
+  });
+
+  const isAllowedOrigin = (origin: string): boolean => {
+    if (!originPatterns.length) return false;
+    return (
+      originPatterns.includes(origin) || patternRegexes.some((rx) => rx.test(origin))
+    );
+  };
+
+  // Robust CORS delegate
+  const corsOptionsDelegate: CorsOptionsDelegate<CorsRequest> = (req, callback) => {
     const originHeader = req.headers.origin;
+    console.log('CORS preflight from:', originHeader);
 
-    // 🔍 Log para saber quién está accediendo
-    console.log('🔍 Solicitud desde:', originHeader);
-
-    // Permitir solicitudes sin origin (Postman, server-side, etc.)
     if (!originHeader) {
+      // Server-to-server or tools (no Origin)
       return callback(null, { origin: true });
     }
 
-    // Si el origin está permitido
-    if (allowedOrigins.includes(originHeader)) {
+    if (isAllowedOrigin(originHeader)) {
       return callback(null, {
         origin: true,
         credentials: true,
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        // allowedHeaders omitted: cors will reflect requested headers automatically
       });
     }
 
-    // 🚫 Si el origin no está permitido, lo bloqueamos pero sin romper el servidor
-    console.warn(
-      `🚫 Bloqueado por CORS (origen no permitido): ${originHeader}`,
-    );
+    console.warn(`Blocked by CORS (not allowed): ${originHeader}`);
     return callback(null, { origin: false });
   };
 
-  // 🔧 Activar CORS con configuración personalizada
-  console.log('🌍 CORS orígenes permitidos:', allowedOrigins);
+  console.log('CORS allowed origins:', originPatterns);
   app.enableCors(corsOptionsDelegate);
 
-  // 🧰 Validaciones globales (DTOs)
+  // Global validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -61,9 +65,9 @@ async function bootstrap() {
     }),
   );
 
-  // 🚀 Iniciar servidor
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`🚀 API corriendo en: ${await app.getUrl()}`);
+  console.log(`API running at: ${await app.getUrl()}`);
 }
 
 void bootstrap();
+
