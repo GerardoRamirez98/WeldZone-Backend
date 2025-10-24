@@ -4,6 +4,7 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
+import { PrismaService } from '../prisma/prisma.service';
 
 // Configuración segura del JWT: requiere JWT_SECRET definido
 const jwtSecret =
@@ -20,6 +21,6 @@ const jwtConfig: JwtModuleOptions = {
 @Module({
   imports: [UsersModule, JwtModule.register(jwtConfig)],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, PrismaService],
 })
 export class AuthModule {}
