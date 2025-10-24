@@ -6,11 +6,16 @@ import {
   UploadedFile,
   BadRequestException,
   Body,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient } from '@supabase/supabase-js';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import multer from 'multer';
 
 type SafeFile = {
   originalname: string;
@@ -52,7 +57,25 @@ export class UploadSpecsController {
     process.env.SUPABASE_SPECS_BUCKET || 'products-specs';
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        if (!allowed.includes(file.mimetype)) {
+          return cb(new BadRequestException('Formato no permitido'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async uploadSpecFile(
     @UploadedFile() file: unknown,
     @Body() body: { oldPath?: string },

@@ -6,9 +6,13 @@ import {
   Delete,
   Body,
   Param,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from './config.service';
 import type { Configuracion, Categoria, Etiqueta } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('config')
 export class ConfigController {
@@ -26,6 +30,8 @@ export class ConfigController {
 
   /** 🔹 PUT /config → actualiza número de WhatsApp */
   @Put()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async updateConfig(
     @Body() body: { whatsapp: string },
   ): Promise<Configuracion> {
@@ -45,6 +51,8 @@ export class ConfigController {
 
   /** 🔹 PUT /config/mantenimiento → activa o desactiva mantenimiento */
   @Put('mantenimiento')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async setMaintenance(
     @Body() body: { mantenimiento: boolean },
   ): Promise<Configuracion> {
@@ -63,12 +71,16 @@ export class ConfigController {
 
   /** 🔹 POST /config/categorias → crea una nueva categoría */
   @Post('categorias')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async addCategoria(@Body() body: { nombre: string }): Promise<Categoria> {
     return this.configService.addCategoria(body.nombre);
   }
 
   /** ✏️ PUT /config/categorias/:id → actualiza el nombre de una categoría */
   @Put('categorias/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async updateCategoria(
     @Param('id') id: string,
     @Body() body: { nombre: string },
@@ -82,6 +94,8 @@ export class ConfigController {
 
   /** 🔹 DELETE /config/categorias/:id → elimina una categoría */
   @Delete('categorias/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async deleteCategoria(@Param('id') id: string): Promise<Categoria> {
     return this.configService.deleteCategoria(Number(id));
   }
@@ -98,6 +112,8 @@ export class ConfigController {
 
   /** 🔹 POST /config/etiquetas → crea una nueva etiqueta */
   @Post('etiquetas')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async addEtiqueta(
     @Body() body: { nombre: string; color: string },
   ): Promise<Etiqueta> {
@@ -106,6 +122,8 @@ export class ConfigController {
 
   /** 🔹 PUT /config/etiquetas/:id → actualiza el color de una etiqueta */
   @Put('etiquetas/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async updateEtiqueta(
     @Param('id') id: string,
     @Body() body: { color: string },
@@ -115,6 +133,8 @@ export class ConfigController {
 
   /** 🔹 DELETE /config/etiquetas/:id → elimina una etiqueta */
   @Delete('etiquetas/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async deleteEtiqueta(@Param('id') id: string): Promise<Etiqueta> {
     return this.configService.deleteEtiqueta(Number(id));
   }

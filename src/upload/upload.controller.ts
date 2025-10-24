@@ -4,11 +4,16 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient } from '@supabase/supabase-js';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import multer from 'multer';
 
 /** Tipo mínimo, 100% seguro para el archivo subido */
 type SafeFile = {
@@ -60,7 +65,21 @@ export class UploadController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!allowedMimes.includes(file.mimetype)) {
+          return cb(new BadRequestException('Tipo de imagen no permitido'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async uploadFile(@UploadedFile() file: unknown): Promise<UploadResponse> {
     // ✅ Validación estricta del archivo
     if (!isSafeFile(file)) {

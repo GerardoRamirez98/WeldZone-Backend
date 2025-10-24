@@ -10,7 +10,11 @@ import {
   ParseIntPipe,
   NotFoundException,
   InternalServerErrorException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -37,6 +41,8 @@ export class ProductsController {
 
   // 🛠️ POST /products — crear nuevo producto
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async createProduct(@Body() body: CreateProductDto) {
     /**
      * body puede contener:
@@ -49,6 +55,8 @@ export class ProductsController {
 
   // ✏️ PUT /products/:id — actualizar producto existente
   @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async updateProduct(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateProductDto,
@@ -62,6 +70,8 @@ export class ProductsController {
 
   // 🗑️ DELETE /products/:id — eliminar producto + imagen + archivo de especificaciones
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async delete(@Param('id', ParseIntPipe) id: number) {
     try {
       const deleted = await this.productsService.delete(id);
