@@ -14,7 +14,7 @@ Nota de negocio: actualmente no realizamos envíos. La entrega es por recolecci�
 ## Requisitos
 
 - Node.js 18+ (recomendado 20 LTS)
-- PostgreSQL 14+ (Railway u on‑premise)
+- PostgreSQL 14+
 
 ---
 
@@ -27,7 +27,7 @@ Usa `.env` basado en `.env.example`.
   - `DIRECT_DATABASE_URL` Postgres directo (opcional)
 - Servidor
   - `PORT` puerto (default 3000)
-  - `FRONTEND_URL` orígenes permitidos para CORS, separados por comas. Acepta comodín `*` por dominio (p.ej. `https://*.vercel.app`)
+  - `FRONTEND_URL` orígenes permitidos para CORS, separados por comas. Acepta comodín `*` por dominio (p.ej. `https://*.example.com`)
 - Autenticación
   - `JWT_SECRET`
   - `REFRESH_TOKEN_SECRET` (si se omite, usa `JWT_SECRET`)
@@ -132,12 +132,12 @@ node -e "(async()=>{const b=require('bcrypt');const h=await b.hash('TU_PASSWORD'
 
 ---
 
-## Despliegue (Railway sugerido)
+## Despliegue (genérico)
 
-1) Crear servicio Postgres y servicio Node.
-2) Configurar variables del `.env` (especialmente DB, JWT y Supabase).
-3) `npx prisma migrate deploy` en el arranque (Railway Nixpacks: usar hook o script).
-4) Exponer puerto `PORT` (Railway lo inyecta automáticamente).
+1) Proveer Postgres y un runtime Node en tu plataforma.
+2) Configurar variables del `.env` (DB, JWT y Supabase) en el entorno.
+3) Ejecutar `npx prisma migrate deploy` en el arranque (según mecanismo de la plataforma).
+4) Exponer el puerto `PORT` que la plataforma asigne automáticamente.
 
 ---
 
@@ -148,4 +148,3 @@ node -e "(async()=>{const b=require('bcrypt');const h=await b.hash('TU_PASSWORD'
 - `npm run lint` — lint
 - `npm run test` — unit
 - `npm run test:e2e` — e2e
-
