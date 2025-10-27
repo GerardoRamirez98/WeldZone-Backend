@@ -1,98 +1,151 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# WeldZone Backend (NestJS + Prisma)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API para el catálogo y panel de administración de WeldZone.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- Framework: NestJS 11 (TypeScript)
+- Base de datos: PostgreSQL + Prisma ORM
+- Auth: JWT + Refresh Token con cookie HttpOnly
+- Storage: Supabase (imágenes y fichas técnicas)
 
-## Description
+Nota de negocio: actualmente no realizamos envíos. La entrega es por recolección en tienda.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## Requisitos
 
-```bash
-$ npm install
-```
+- Node.js 18+ (recomendado 20 LTS)
+- PostgreSQL 14+ (Railway u on‑premise)
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## Variables de entorno
 
-# watch mode
-$ npm run start:dev
+Usa `.env` basado en `.env.example`.
 
-# production mode
-$ npm run start:prod
-```
+- Base de datos
+  - `DATABASE_URL` Postgres (lectura/escritura)
+  - `DIRECT_DATABASE_URL` Postgres directo (opcional)
+- Servidor
+  - `PORT` puerto (default 3000)
+  - `FRONTEND_URL` orígenes permitidos para CORS, separados por comas. Acepta comodín `*` por dominio (p.ej. `https://*.vercel.app`)
+- Autenticación
+  - `JWT_SECRET`
+  - `REFRESH_TOKEN_SECRET` (si se omite, usa `JWT_SECRET`)
+  - `REFRESH_TOKEN_EXPIRES` (p.ej. `7d`)
+  - `REFRESH_TOKEN_MAX_AGE_MS` edad de cookie (ms)
+- Supabase Storage
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY` (recomendado) o `SUPABASE_ANON_KEY`
+  - `SUPABASE_BUCKET` bucket de imágenes (default `products`)
+  - `SUPABASE_SPECS_BUCKET` bucket de fichas (default `products-specs`)
 
-## Run tests
+---
+
+## Puesta en marcha
 
 ```bash
-# unit tests
-$ npm run test
+npm install
 
-# e2e tests
-$ npm run test:e2e
+# Generar cliente Prisma y aplicar schema
+npx prisma generate
+npx prisma migrate dev --name init
 
-# test coverage
-$ npm run test:cov
+# Desarrollo
+npm run start:dev
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Producción:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run build
+npm run start:prod
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+> CORS toma los orígenes de `FRONTEND_URL`. Si ves bloqueos en consola, revisa ese valor.
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## Modelos (Prisma)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- `Product`: nombre, descripcion, precio, stock, imagenUrl, specFileUrl, relaciones `categoria`/`etiqueta`.
+- `Categoria`, `Etiqueta`: catálogos base para organizar productos.
+- `User`: `username`, `passwordHash`, `role` (`admin`/`user`).
+- `Configuracion`: `whatsapp` y `mantenimiento` (modo mantenimiento del sitio).
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Endpoints (resumen)
 
-## Stay in touch
+- Auth
+  - `POST /auth/login` → devuelve `access_token` y setea cookie `refresh_token` (HttpOnly)
+  - `GET /auth/me` (JWT)
+  - `POST /auth/refresh` → rota refresh token (cookie)
+  - `POST /auth/logout` → revoca cookie
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- Products
+  - `GET /products` | `GET /products/:id`
+  - `POST /products` (admin)
+  - `PUT /products/:id` (admin)
+  - `DELETE /products/:id` (admin)
 
-## License
+- Upload (Supabase Storage)
+  - `POST /upload` (admin) → imagen de producto (`multipart/form-data` campo `file`)
+  - `POST /upload-specs` (admin) → ficha técnica PDF/DOC (`file`, opcionalmente `oldPath` para reemplazo)
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Configuración
+  - `GET /config` | `PUT /config` (admin) — número de WhatsApp
+  - `GET /config/mantenimiento` | `PUT /config/mantenimiento` (admin)
+  - `GET /config/categorias` | `POST /config/categorias` (admin)
+  - `PUT /config/categorias/:id` | `DELETE /config/categorias/:id` (admin)
+  - `GET /config/etiquetas` | `POST /config/etiquetas` (admin)
+  - `PUT /config/etiquetas/:id` | `DELETE /config/etiquetas/:id` (admin)
+
+- Usuarios (protegido)
+  - `POST /users` (admin) crear usuario
+  - `GET /users` listar
+  - `DELETE /users/:id` (admin)
+
+---
+
+## Crear usuario admin (opciones)
+
+- Prisma Studio (sencillo):
+
+```bash
+npx prisma studio
+```
+
+Tabla `User` → crea registro con `username`, `passwordHash` (usa hash Bcrypt) y `role = "admin"`.
+
+- Línea de comandos (genera hash y pega en tu SQL):
+
+```bash
+node -e "(async()=>{const b=require('bcrypt');const h=await b.hash('TU_PASSWORD',10);console.log(h)})()"
+```
+
+---
+
+## Integración con el frontend
+
+- La URL base del backend se configura en el front con `VITE_API_URL`.
+- El flujo de compra del sitio es por recolección en tienda (no hay envíos).
+
+---
+
+## Despliegue (Railway sugerido)
+
+1) Crear servicio Postgres y servicio Node.
+2) Configurar variables del `.env` (especialmente DB, JWT y Supabase).
+3) `npx prisma migrate deploy` en el arranque (Railway Nixpacks: usar hook o script).
+4) Exponer puerto `PORT` (Railway lo inyecta automáticamente).
+
+---
+
+## Scripts
+
+- `npm run start:dev` — desarrollo con watch
+- `npm run build` / `start:prod` — producción
+- `npm run lint` — lint
+- `npm run test` — unit
+- `npm run test:e2e` — e2e
+
