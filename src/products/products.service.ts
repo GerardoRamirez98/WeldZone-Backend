@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Prisma } from '@prisma/client';
@@ -27,7 +27,7 @@ export class ProductsService {
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY!;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('⚠️ Variables de entorno Supabase faltantes o incorrectas');
+      console.warn('?? Variables de entorno Supabase faltantes o incorrectas');
     }
 
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -35,7 +35,7 @@ export class ProductsService {
     }) as unknown as SupabaseClient;
   }
 
-  // 📦 Obtener todos los productos con relaciones
+  // Obtener todos los productos con relaciones (sin filtro por defecto aquí)
   async getAll() {
     return this.prisma.product.findMany({
       include: {
@@ -46,7 +46,7 @@ export class ProductsService {
     });
   }
 
-  // 🔍 Obtener producto por ID
+  // Obtener producto por ID
   async getById(id: number) {
     return this.prisma.product.findUnique({
       where: { id },
@@ -57,8 +57,21 @@ export class ProductsService {
     });
   }
 
-  // 🛠️ Crear producto con IDs directos
+  // Crear producto con IDs directos
   async create(data: CreateProductDto) {
+    // Validación: evitar nombres duplicados
+    const existing = await this.prisma.product.findFirst({
+      where: { nombre: { equals: data.nombre, mode: 'insensitive' } },
+      select: { id: true, estado: true },
+    });
+    if (existing) {
+      const enEliminados = existing.estado !== 'activo';
+      const msg = enEliminados
+        ? 'Ya existe un producto con ese nombre en la lista de eliminados.'
+        : 'Ya existe un producto con ese nombre en la lista de productos.';
+      throw new ConflictException(msg);
+    }
+
     const cleanData: Prisma.ProductUncheckedCreateInput = {
       nombre: data.nombre,
       descripcion: data.descripcion ?? null,
@@ -79,7 +92,16 @@ export class ProductsService {
     });
   }
 
-  // ✏️ Actualizar producto (con control de relaciones)
+  // Validar existencia por nombre (case-insensitive)
+  async existsByName(nombre: string) {
+    const existing = await this.prisma.product.findFirst({
+      where: { nombre: { equals: nombre, mode: 'insensitive' } },
+      select: { id: true, estado: true },
+    });
+    return existing ?? null;
+  }
+
+  // Actualizar producto (con control de relaciones)
   async update(id: number, data: Partial<CreateProductDto>) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
@@ -95,7 +117,7 @@ export class ProductsService {
       etiquetaId: data.etiquetaId ?? producto.etiquetaId ?? null,
     };
 
-    // ⚙️ Si cambió la imagen o archivo, eliminamos el anterior
+    // Si cambió la imagen o archivo, eliminamos el anterior
     if (data.imagenUrl && data.imagenUrl !== producto.imagenUrl) {
       await this.deleteImageFromBucket(producto.imagenUrl);
     }
@@ -113,8 +135,119 @@ export class ProductsService {
     });
   }
 
-  // 🗑️ Eliminar producto + archivos en Supabase
+  // Soft delete: marcar el producto como inactivo sin borrar archivos
   async delete(id: number) {
+    const producto = await this.prisma.product.findUnique({ where: { id } });
+    if (!producto) throw new NotFoundException('Producto no encontrado');
+
+    // Intento 1: usar campos nuevos (activo, deletedAt)
+    try {
+      return await this.prisma.product.update({
+        where: { id },
+        data: {
+          estado: 'inactivo',
+          // @ts-ignore
+          activo: false,
+          // @ts-ignore
+          deletedAt: new Date(),
+        },
+        include: {
+          categoria: { select: { id: true, nombre: true } },
+          etiqueta: { select: { id: true, nombre: true, color: true } },
+        },
+      });
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      // Intento 2: si 'activo' no existe, probar sin 'activo'
+      if (msg.includes('Unknown argument `activo`')) {
+        try {
+          return await this.prisma.product.update({
+            where: { id },
+            data: {
+              estado: 'inactivo',
+              // @ts-ignore
+              deletedAt: new Date(),
+            },
+            include: {
+              categoria: { select: { id: true, nombre: true } },
+              etiqueta: { select: { id: true, nombre: true, color: true } },
+            },
+          });
+        } catch (e2: any) {
+          // Intento 3: si 'deletedAt' tampoco existe, solo cambiar estado
+          if (String(e2?.message || '').includes('Unknown argument `deletedAt`')) {
+            return this.prisma.product.update({
+              where: { id },
+              data: { estado: 'inactivo' },
+              include: {
+                categoria: { select: { id: true, nombre: true } },
+                etiqueta: { select: { id: true, nombre: true, color: true } },
+              },
+            });
+          }
+          throw e2;
+        }
+      }
+      throw e;
+    }
+  }
+
+  // Restaurar producto inactivo
+  async restore(id: number) {
+    const producto = await this.prisma.product.findUnique({ where: { id } });
+    if (!producto) throw new NotFoundException('Producto no encontrado');
+
+    try {
+      return await this.prisma.product.update({
+        where: { id },
+        data: {
+          estado: 'activo',
+          // @ts-ignore
+          activo: true,
+          // @ts-ignore
+          deletedAt: null,
+        },
+        include: {
+          categoria: { select: { id: true, nombre: true } },
+          etiqueta: { select: { id: true, nombre: true, color: true } },
+        },
+      });
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('Unknown argument `activo`')) {
+        try {
+          return await this.prisma.product.update({
+            where: { id },
+            data: {
+              estado: 'activo',
+              // @ts-ignore
+              deletedAt: null,
+            },
+            include: {
+              categoria: { select: { id: true, nombre: true } },
+              etiqueta: { select: { id: true, nombre: true, color: true } },
+            },
+          });
+        } catch (e2: any) {
+          if (String(e2?.message || '').includes('Unknown argument `deletedAt`')) {
+            return this.prisma.product.update({
+              where: { id },
+              data: { estado: 'activo' },
+              include: {
+                categoria: { select: { id: true, nombre: true } },
+                etiqueta: { select: { id: true, nombre: true, color: true } },
+              },
+            });
+          }
+          throw e2;
+        }
+      }
+      throw e;
+    }
+  }
+
+  // Eliminación definitiva: borra archivos y registro
+  async forceDelete(id: number) {
     const producto = await this.prisma.product.findUnique({ where: { id } });
     if (!producto) throw new NotFoundException('Producto no encontrado');
 
@@ -129,7 +262,7 @@ export class ProductsService {
     return this.prisma.product.delete({ where: { id } });
   }
 
-  // 🧰 Eliminar imagen del bucket Supabase
+  // Eliminar imagen del bucket Supabase
   private async deleteImageFromBucket(publicUrl: string | null) {
     try {
       if (!publicUrl) return;
@@ -143,13 +276,13 @@ export class ProductsService {
         .from(this.imageBucket)
         .remove([path]);
       if (error)
-        console.error('❌ Error al borrar imagen del bucket:', error.message);
+        console.error('? Error al borrar imagen del bucket:', error.message);
     } catch (err) {
-      console.error('⚠️ Error interno al borrar imagen:', err);
+      console.error('?? Error interno al borrar imagen:', err);
     }
   }
 
-  // 🧰 Eliminar archivo de especificaciones del bucket Supabase
+  // Eliminar archivo de especificaciones del bucket Supabase
   private async deleteSpecFileFromBucket(publicUrl: string | null) {
     try {
       if (!publicUrl) return;
@@ -164,11 +297,11 @@ export class ProductsService {
         .remove([path]);
       if (error)
         console.error(
-          '❌ Error al borrar archivo de especificaciones:',
+          '? Error al borrar archivo de especificaciones:',
           error.message,
         );
     } catch (err) {
-      console.error('⚠️ Error interno al borrar especificación:', err);
+      console.error('?? Error interno al borrar especificación:', err);
     }
   }
 }
